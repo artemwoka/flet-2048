@@ -1,2 +1,2 @@
 # flet-2048
-game 2048 python
+game 2048 python-flet
