@@ -28,6 +28,21 @@ class Game2048:
         if empty:
             r, c = random.choice(empty)
             self.board[r][c] = 2 if random.random() < 0.9 else 4
+
+
+    def check_lost(self) -> None:
+        """Перевіряє, чи більше немає доступних ходів, і встановлює `lost`."""
+        if self.state != "playing":
+            return
+        for r in range(N):
+            for c in range(N):
+                if self.board[r][c] == 0:
+                    return  # є порожня клітина
+                if c + 1 < N and self.board[r][c] == self.board[r][c + 1]:
+                    return  # є пара по горизонталі
+                if r + 1 < N and self.board[r][c] == self.board[r + 1][c]:
+                    return  # є пара по вертикалі
+        self.state = "lost"
     
     def move_down(self) -> bool:
         """Переміщує всі плитки вниз, об'єднуючи однакові та додаючи очки."""
@@ -215,7 +230,7 @@ def main(page: ft.Page) -> None:
                 return
             if fns[direction]():
                 game.add_random_tile()
-                # game.check_lost()
+                game.check_lost()
                 refresh_ui()
 
         return handler
