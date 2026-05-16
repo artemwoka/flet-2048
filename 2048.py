@@ -210,15 +210,22 @@ def main(page: ft.Page) -> None:
             ),
         )
 
-    tile_controls = [
+    tile_controls: list[list[ft.Container]] = [
         [make_tile(game.board[r][c]) for c in range(N)]
         for r in range(N)
     ]
-    score_text = ft.Text(f"Очки: {game.score}", size=20,
-                         weight=ft.FontWeight.BOLD, color=ft.Colors.BROWN_500)
+    score_text = ft.Text(
+        f"Очки: {game.score}",
+        size=20,
+        weight=ft.FontWeight.BOLD,
+        color=ft.Colors.BROWN_500)
     
-    status_text = ft.Text("Натискай кнопки нижче", size=13,
-                          color=ft.Colors.BROWN_500, text_align=ft.TextAlign.CENTER)
+    status_text = ft.Text(
+        "Стрілки - хід, Backspace - відміна ходу",
+        size=13,
+        color=ft.Colors.BROWN_500,
+        text_align=ft.TextAlign.CENTER
+        )
     
     def refresh_ui(msg: str = "") -> None:
         """Оновлює інтерфейс користувача, відображаючи поточний стан гри та очки."""
@@ -236,7 +243,7 @@ def main(page: ft.Page) -> None:
         elif game.state == "lost":
             status_text.value = "GAME OVER"
         else:
-            status_text.value = msg or "Натискайте кнопки"
+            status_text.value = msg or "Стрілки - хід, Backspace - відміна ходу"
         page.update()
 
     refresh_ui()
@@ -282,40 +289,62 @@ def main(page: ft.Page) -> None:
             game.undo()
             refresh_ui()
 
-    def on_restart(e: ft.ControlEvent) -> None:
-        """Обробник події для кнопки перезапуску гри, який скидає гру та оновлює інтерфейс."""
-        game.reset()
-        refresh_ui()
 
-    move_btns = ft.Row(
-        controls=[
-            ft.Button(content="◀️", on_click=on_move("left"), style=btn_style),
-            ft.Button(content="▲", on_click=on_move("up"), style=btn_style),
-            ft.Button(content="▼", on_click=on_move("down"), style=btn_style),
-            ft.Button(content="▶️", on_click=on_move("right"), style=btn_style),
-            ft.Button(content="⬅️", on_click=on_undo, style=btn_style),
-            ft.Button(content="🔁", on_click=on_restart, style=btn_style),
-            ],
+    def on_restart(e: ft.ControlEvent) -> None:
+        """Обробник події для кнопки перезапуску гри,
+          який скидає гру та оновлює інтерфейс."""
+        game.reset()
+        refresh_ui("Стрілки або кнопки для гри")
+
+    
+    restart_btn =  ft.Button(
+        content="🔁 New Game", on_click=on_restart, style=btn_style
         )
     
+    MOVES = {
+        "Arrow Up":     game.move_up,
+        "Arrow Down":   game.move_down,
+        "Arrow Left":   game.move_left,
+        "Arrow Right":  game.move_right,
+    }
+
+    def on_key(e: ft.KeyboardEvent) -> None:
+        if e.key == "Backspace" and game.state != "lost":
+            game.undo()
+            refresh_ui()
+            return
+        if game.state == "lost":
+            return
+        move_fn = MOVES.get(e.key)
+        if move_fn and move_fn():
+            game.add_random_tile()
+            game.check_lost()
+            refresh_ui()
+
+    page.on_keyboard_event = on_key
+
+    header = ft.Row(
+        controls=[
+            ft.Text(
+                "2048",
+                size=48,
+                weight=ft.FontWeight.BOLD,
+                color=ft.Colors.BROWN_500,
+            ),
+            ft.Column(
+                controls=[score_text, restart_btn],
+                horizontal_alignment=ft.CrossAxisAlignment.END,
+                spacing=4,
+            ),       
+        ],
+        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+    )
 
     page.add(
         ft.Column(
             controls=[
-                ft.Row(
-                    controls=[
-                        ft.Text(
-                            "2048",
-                            size=48,
-                            weight=ft.FontWeight.BOLD,
-                            color=ft.Colors.BROWN_500,
-                        ),
-                        score_text,
-                    ],
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                ),
+                header,
                 grid,
-                move_btns,
                 status_text,
             ],
             spacing=10,
